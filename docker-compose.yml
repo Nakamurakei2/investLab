@@ -15,11 +15,33 @@ services:
       - investlab-postgres-data:/var/lib/postgresql/data
       - ./docker/postgres/init:/docker-entrypoint-initdb.d:ro
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-investlab} -d ${POSTGRES_DB:-investlab}"]
+      test:
+        [
+          "CMD-SHELL",
+          "pg_isready -U ${POSTGRES_USER:-investlab} -d ${POSTGRES_DB:-investlab}",
+        ]
       interval: 5s
       timeout: 5s
       retries: 10
       start_period: 10s
+
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile.dev
+    container_name: investlab-nextjs
+    restart: unless-stopped
+    ports:
+      - 3000:3000
+    volumes:
+      - .:/app
+      - /app/node_modules
+    environment:
+      DATABASE_URL: postgresql://${POSTGRES_USER:-investlab}:${POSTGRES_PASSWORD}@postgres
+    depends_on:
+      postgres:
+        condition: service_healthy
+    command: npm run dev
 
 volumes:
   investlab-postgres-data:
